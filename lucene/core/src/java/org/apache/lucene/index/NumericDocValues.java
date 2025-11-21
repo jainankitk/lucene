@@ -91,4 +91,61 @@ public abstract class NumericDocValues extends DocValuesIterator {
       values[i] = value;
     }
   }
+
+  /**
+   * Bulk retrieval of numeric doc values. This API helps reduce the performance impact of virtual
+   * function calls.
+   *
+   * <p>This API behaves as if implemented as below, which is the default implementation:
+   *
+   * <pre class="prettyprint">
+   * public void longValues(int minDoc, int maxDoc, long[] values, long defaultValue) throws IOException {
+   *   assert values.length == maxDoc - minDoc;
+   *   for (int i = 0; i &lt; maxDoc - minDoc; ++i) {
+   *     int doc = minDoc + i;
+   *     long value;
+   *     if (advanceExact(doc)) {
+   *       value = longValue();
+   *     } else {
+   *       value = defaultValue;
+   *     }
+   *     values[i] = value;
+   *   }
+   * }
+   * </pre>
+   *
+   * <p><b>NOTE</b>: The maxDoc must be >= minDoc and values.length == maxDoc - minDoc
+   *
+   * <p><b>NOTE</b>: This API doesn't allow callers to know which doc IDs have a value or not. If
+   * you need to exclude documents that don't have a value for this field, then you could apply a
+   * {@link FieldExistsQuery} as a {@link Occur#FILTER} clause. Another option is to fall back to
+   * using {@link #advanceExact} and {@link #longValue()} on ranges of doc IDs that may not be
+   * dense, e.g.
+   *
+   * <pre class="prettyprint">
+   * if (size > 0 &amp;&amp; values.advannceExact(docs[0]) &amp;&amp; values.docIDRunEnd() &gt; docs[size - 1]) {
+   *   // use values#longValues to retrieve values
+   * } else {
+   *   // some docs may not have a value, use #advanceExact and #longValue
+   * }
+   * </pre>
+   *
+   * @param minDoc the minimum document ID to retrieve values for
+   * @param maxDoc the maximum document ID to retrieve values for
+   * @param values the buffer of values to fill
+   * @param defaultValue the value to put in the buffer when a document doesn't have a value
+   */
+  public void longValues(int minDoc, int maxDoc, long[] values, long defaultValue)
+      throws IOException {
+    for (int i = 0; i < maxDoc - minDoc; ++i) {
+      int doc = minDoc + i;
+      long value;
+      if (advanceExact(doc)) {
+        value = longValue();
+      } else {
+        value = defaultValue;
+      }
+      values[i] = value;
+    }
+  }
 }
